@@ -162,7 +162,7 @@ class MySQLConnector(SQLConnector):
                     return cast(sqlalchemy.types.TypeEngine, mysql.BINARY())
 
             # The maximum row size for the used table type, not counting BLOBs, is 65535.
-            maxlength = jsonschema_type.get("maxLength", 1000)
+            maxlength = jsonschema_type.get("maxLength", 2000)
             data_type = mysql.VARCHAR(maxlength)
             if maxlength <= 1000:
                 return cast(sqlalchemy.types.TypeEngine, mysql.VARCHAR(maxlength))
