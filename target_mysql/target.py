@@ -85,6 +85,12 @@ class TargetMySQL(SQLTarget):
             description="Replace null to blank",
             default=False
         ),
+        th.Property(
+            "drop_stage_tables",
+            th.BooleanType,
+            description="With every incremental load, drop staging tables",
+            default=True
+        ),
 
     ).to_dict()
 

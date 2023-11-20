@@ -283,22 +283,25 @@ class MySQLConnector(SQLConnector):
 
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
         """Temp table from another table."""
+        
+        if self.config.get("drop_stage_tables"):
+            try:
+                self.connection.execute(
+                    f"""DROP TABLE {temp_table_name}"""
+                )
+            except Exception as e:
+                pass
 
-        try:
-            self.connection.execute(
-                f"""DROP TABLE {temp_table_name}"""
-            )
-        except Exception as e:
-            pass
+            sql = f"""
+                CREATE TABLE {temp_table_name} AS (
+                    SELECT * FROM {from_table_name}
+                    WHERE 1=0
+                )
+            """
+        else:
+            sql = f"""DELETE FROM {temp_table_name} WHERE 1=1"""
 
-        ddl = f"""
-            CREATE TABLE {temp_table_name} AS (
-                SELECT * FROM {from_table_name}
-                WHERE 1=0
-            )
-        """
-
-        self.connection.execute(ddl)
+        self.connection.execute(sql)
 
     def create_empty_table(
             self,
