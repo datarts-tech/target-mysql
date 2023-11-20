@@ -283,7 +283,7 @@ class MySQLConnector(SQLConnector):
 
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
         """Temp table from another table."""
-        
+
         if self.config.get("drop_stage_tables"):
             try:
                 self.connection.execute(
@@ -623,7 +623,10 @@ class MySQLSink(SQLSink):
 
         self.connection.execute("COMMIT")
 
-        self.connection.execute(f"DROP TABLE {from_table_name}")
+        if self.config.get("drop_stage_tables"):
+            self.connection.execute(f"DROP TABLE {from_table_name}")
+        else:
+            self.connection.execute(f"DELETE FROM {from_table_name} WHERE 1=1")
 
     def bulk_insert_records(
             self,
