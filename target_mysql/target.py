@@ -55,6 +55,7 @@ class TargetMySQL(SQLTarget):
             "port",
             th.StringType,
             description="MySQL port",
+            default="3306"
         ),
         th.Property(
             "database",
