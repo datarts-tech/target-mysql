@@ -524,6 +524,10 @@ class MySQLSink(SQLSink):
         super().__init__(*args, **kwargs)
         self.logger.setLevel(logging.INFO)
 
+        if self.config.get("skip_stage_tables"):
+            self.logger.info(f"Cleaning table {self.full_table_name}")
+            self.connector.clean_up_table(self.full_table_name)
+
     def process_batch(self, context: dict) -> None:
         """Process a batch with the given batch context.
         Writes a batch to the SQL target. Developers may override this method
@@ -542,17 +546,7 @@ class MySQLSink(SQLSink):
         join_keys = [self.conform_name(key, "column") for key in self.key_properties]
         schema = self.conform_schema(self.schema)
 
-        if self.config.get("skip_stage_tables"):
-            self.logger.info(f"Cleaning table {self.full_table_name}")
-            self._connector.clean_up_table(self.full_table_name)
-
-            self.bulk_insert_records(
-                full_table_name=self.full_table_name,
-                schema=schema,
-                records=conformed_records,
-            )
-
-        elif self.key_properties and not self.config.get("skip_stage_tables"):
+        if self.key_properties and not self.config.get("skip_stage_tables"):
             self.logger.info(f"Preparing table {self.full_table_name}")
             self.connector.prepare_table(
                 full_table_name=self.full_table_name,
@@ -565,7 +559,7 @@ class MySQLSink(SQLSink):
 
             # Create a temp table (Creates from the table above)
             self.logger.info(f"Creating temp table {self.full_table_name}")
-            self._connector.create_temp_table_from_table(
+            self.connector.create_temp_table_from_table(
                 from_table_name=self.full_table_name,
                 temp_table_name=tmp_table_name
             )
@@ -585,11 +579,12 @@ class MySQLSink(SQLSink):
             )
 
         else:
-            self.bulk_insert_records(
+            count = self.bulk_insert_records(
                 full_table_name=self.full_table_name,
                 schema=schema,
                 records=conformed_records,
             )
+            self.logger.info(f"Inserted {count} row(s) into {self.full_table_name}")
 
     def merge_upsert_from_table(self,
                                 from_table_name: str,
