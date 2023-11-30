@@ -544,7 +544,7 @@ class MySQLSink(SQLSink):
 
         if self.config.get("skip_stage_tables"):
             self.logger.info(f"Cleaning table {self.full_table_name}")
-            self.clean_up_table(self.full_table_name)
+            self._connector.clean_up_table(self.full_table_name)
 
             self.bulk_insert_records(
                 full_table_name=self.full_table_name,
