@@ -281,25 +281,28 @@ class MySQLConnector(SQLConnector):
                 f"on table '{full_table_name}'."
             ) from e
 
+    def clean_up_table(self, table_name):
+        """Delete all rows from a table."""
+        
+        sql = f"""DELETE FROM {table_name} WHERE 1=1"""
+        self.connection.execute(sql)
+
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
         """Temp table from another table."""
 
-        if self.config.get("drop_stage_tables"):
-            try:
-                self.connection.execute(
-                    f"""DROP TABLE {temp_table_name}"""
-                )
-            except Exception as e:
-                pass
+        try:
+            self.connection.execute(
+                f"""DROP TABLE {temp_table_name}"""
+            )
+        except Exception as e:
+            pass
 
-            sql = f"""
-                CREATE TABLE {temp_table_name} AS (
-                    SELECT * FROM {from_table_name}
-                    WHERE 1=0
-                )
-            """
-        else:
-            sql = f"""DELETE FROM {temp_table_name} WHERE 1=1"""
+        sql = f"""
+            CREATE TABLE {temp_table_name} AS (
+                SELECT * FROM {from_table_name}
+                WHERE 1=0
+            )
+        """
 
         self.connection.execute(sql)
 
@@ -569,6 +572,16 @@ class MySQLSink(SQLSink):
                 from_table_name=tmp_table_name,
                 to_table_name=self.full_table_name,
                 join_keys=join_keys,
+            )
+
+        elif self.config.get("skip_stage_tables"):
+            self.logger.info(f"Cleaning table {self.full_table_name}")
+            self.clean_up_table(self.full_table_name)
+
+            self.bulk_insert_records(
+                full_table_name=self.full_table_name,
+                schema=schema,
+                records=conformed_records,
             )
 
         else:

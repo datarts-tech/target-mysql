@@ -86,10 +86,10 @@ class TargetMySQL(SQLTarget):
             default=False
         ),
         th.Property(
-            "drop_stage_tables",
+            "skip_stage_tables",
             th.BooleanType,
-            description="With every incremental load, drop staging tables",
-            default=True
+            description="(Default: False) With every incremental load, skip using staging and rebuild final tables entirely",
+            default=False
         ),
 
     ).to_dict()
