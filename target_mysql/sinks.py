@@ -542,7 +542,17 @@ class MySQLSink(SQLSink):
         join_keys = [self.conform_name(key, "column") for key in self.key_properties]
         schema = self.conform_schema(self.schema)
 
-        if self.key_properties:
+        if self.config.get("skip_stage_tables"):
+            self.logger.info(f"Cleaning table {self.full_table_name}")
+            self.clean_up_table(self.full_table_name)
+
+            self.bulk_insert_records(
+                full_table_name=self.full_table_name,
+                schema=schema,
+                records=conformed_records,
+            )
+
+        elif self.key_properties and not self.config.get("skip_stage_tables"):
             self.logger.info(f"Preparing table {self.full_table_name}")
             self.connector.prepare_table(
                 full_table_name=self.full_table_name,
@@ -572,16 +582,6 @@ class MySQLSink(SQLSink):
                 from_table_name=tmp_table_name,
                 to_table_name=self.full_table_name,
                 join_keys=join_keys,
-            )
-
-        elif self.config.get("skip_stage_tables"):
-            self.logger.info(f"Cleaning table {self.full_table_name}")
-            self.clean_up_table(self.full_table_name)
-
-            self.bulk_insert_records(
-                full_table_name=self.full_table_name,
-                schema=schema,
-                records=conformed_records,
             )
 
         else:
