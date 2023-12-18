@@ -202,7 +202,7 @@ class MySQLConnector(SQLConnector):
 
         if self._jsonschema_type_check(jsonschema_type, ("number",)):
             if 'multipleOf' in jsonschema_type:
-                return cast(sqlalchemy.types.TypeEngine, mysql.DECIMAL())
+                return cast(sqlalchemy.types.TypeEngine, mysql.DECIMAL(precision=12, scale=2))
             else:
                 return cast(sqlalchemy.types.TypeEngine, mysql.FLOAT())
 
