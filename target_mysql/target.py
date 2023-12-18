@@ -85,6 +85,12 @@ class TargetMySQL(SQLTarget):
             description="Replace null to blank",
             default=False
         ),
+        th.Property(
+            "skip_stage_tables",
+            th.BooleanType,
+            description="(Default: False) With every incremental load, skip using staging and rebuild final tables entirely",
+            default=False
+        ),
 
     ).to_dict()
 

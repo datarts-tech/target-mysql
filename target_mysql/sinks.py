@@ -38,7 +38,7 @@ class MySQLConnector(SQLConnector):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
         if "allow_column_alter" in super().config:
             self.allow_column_alter = super().config.get("allow_column_alter")
@@ -281,6 +281,12 @@ class MySQLConnector(SQLConnector):
                 f"on table '{full_table_name}'."
             ) from e
 
+    def clean_up_table(self, table_name):
+        """Delete all rows from a table."""
+        
+        sql = f"""DELETE FROM {table_name} WHERE 1=1"""
+        self.connection.execute(sql)
+
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
         """Temp table from another table."""
 
@@ -291,14 +297,14 @@ class MySQLConnector(SQLConnector):
         except Exception as e:
             pass
 
-        ddl = f"""
+        sql = f"""
             CREATE TABLE {temp_table_name} AS (
                 SELECT * FROM {from_table_name}
                 WHERE 1=0
             )
         """
 
-        self.connection.execute(ddl)
+        self.connection.execute(sql)
 
     def create_empty_table(
             self,
@@ -516,7 +522,11 @@ class MySQLSink(SQLSink):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
+
+        if self.config.get("skip_stage_tables"):
+            self.logger.info(f"Cleaning table {self.full_table_name}")
+            self.connector.clean_up_table(self.full_table_name)
 
     def process_batch(self, context: dict) -> None:
         """Process a batch with the given batch context.
@@ -536,7 +546,7 @@ class MySQLSink(SQLSink):
         join_keys = [self.conform_name(key, "column") for key in self.key_properties]
         schema = self.conform_schema(self.schema)
 
-        if self.key_properties:
+        if self.key_properties and not self.config.get("skip_stage_tables"):
             self.logger.info(f"Preparing table {self.full_table_name}")
             self.connector.prepare_table(
                 full_table_name=self.full_table_name,
@@ -549,7 +559,7 @@ class MySQLSink(SQLSink):
 
             # Create a temp table (Creates from the table above)
             self.logger.info(f"Creating temp table {self.full_table_name}")
-            self._connector.create_temp_table_from_table(
+            self.connector.create_temp_table_from_table(
                 from_table_name=self.full_table_name,
                 temp_table_name=tmp_table_name
             )
@@ -569,11 +579,12 @@ class MySQLSink(SQLSink):
             )
 
         else:
-            self.bulk_insert_records(
+            count = self.bulk_insert_records(
                 full_table_name=self.full_table_name,
                 schema=schema,
                 records=conformed_records,
             )
+            self.logger.info(f"Inserted {count} row(s) into {self.full_table_name}")
 
     def merge_upsert_from_table(self,
                                 from_table_name: str,
@@ -620,7 +631,10 @@ class MySQLSink(SQLSink):
 
         self.connection.execute("COMMIT")
 
-        self.connection.execute(f"DROP TABLE {from_table_name}")
+        if self.config.get("drop_stage_tables"):
+            self.connection.execute(f"DROP TABLE {from_table_name}")
+        else:
+            self.connection.execute(f"DELETE FROM {from_table_name} WHERE 1=1")
 
     def bulk_insert_records(
             self,
