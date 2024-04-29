@@ -36,6 +36,8 @@ The available configuration options for `target-mysql` are:
 | lower_case_table_names  | Use lowercase for table names or not       | true               |
 | allow_column_alter      | Allow column alterations or not            | false              |
 | replace_null            | Replace null values with others or not     | false              |
+| skip_stage_tables       | With every incremental load, skip using staging and rebuild final tables entirely | false              |
+| ssl                     | Enable SSL connection                      | false              |
 
 Configurations can be stored in a JSON configuration file and specified using the `--config` flag with `target-mysql`.
 

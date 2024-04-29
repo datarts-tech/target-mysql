@@ -43,6 +43,37 @@ class MySQLConnector(SQLConnector):
         if "allow_column_alter" in super().config:
             self.allow_column_alter = super().config.get("allow_column_alter")
 
+    @property
+    def _engine(self) -> Engine:
+        """Return the engine object.
+
+        This is the correct way to access the Connector's engine, if needed
+        (e.g. to inspect tables).
+
+        Returns:
+            The SQLAlchemy Engine that's attached to this SQLConnector instance.
+        """
+        if not self._cached_engine:
+            self._cached_engine = sqlalchemy.create_engine(
+                self.sqlalchemy_url,
+                echo=False,
+                pool_pre_ping=True,
+                json_serializer=self.serialize_json,
+                json_deserializer=self.deserialize_json,
+                connect_args={'ssl': self.config.get("ssl")},
+            )
+        return self._cached_engine
+
+    def serialize_json(self, obj) -> str:
+        """Serialize an object to a JSON string.
+        """
+        return super().serialize_json(obj)
+
+    def deserialize_json(self, json_str) -> str:
+        """Deserialize a JSON string to an object.
+        """
+        return super().deserialize_json(json_str)
+
     def get_sqlalchemy_url(self, config: dict) -> URL:
         """Generates a SQLAlchemy URL for MySQL.
 

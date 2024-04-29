@@ -91,6 +91,12 @@ class TargetMySQL(SQLTarget):
             description="(Default: False) With every incremental load, skip using staging and rebuild final tables entirely",
             default=False
         ),
+        th.Property(
+            "ssl",
+            th.BooleanType,
+            description="(Default: False) Enable SSL connection",
+            default=False
+        ),
 
     ).to_dict()
 
